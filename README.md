@@ -1,12 +1,15 @@
-# TaskFlow - Task Management Application
+# TaskFlow v2 - Enhanced Task Management Application
 
-TaskFlow is a full-stack task management application built with Django and Django Rest Framework. It features both a RESTful API and a clean web interface for managing tasks with user authentication.
+TaskFlow is a full-stack task management application built with Django and Django Rest Framework. It features both a RESTful API and a clean web interface for managing tasks with user authentication. This version includes enhanced features like task priorities, due dates, filtering, and pagination.
 
 ## Features
 
 ### Web Interface
 *   **User Registration & Login:** Simple and intuitive user registration and login forms
 *   **Task Management:** Create, view, update, complete, and delete tasks through a clean web interface
+*   **Task Priorities & Due Dates:** Set priorities (Low, Medium, High) and due dates for your tasks.
+*   **Filtering:** Filter tasks by completion status and priority.
+*   **Pagination:** Paginated task list for better performance with a large number of tasks.
 *   **Real-time Updates:** Dynamic task list that updates without page refreshes
 *   **Responsive Design:** Clean, modern interface that works on all devices
 
@@ -15,11 +18,13 @@ TaskFlow is a full-stack task management application built with Django and Djang
 *   `GET /api/`: API root with available endpoints
 *   `POST /api/register/`: Register a new user
 *   `POST /api/api-token-auth/`: Log in and receive an authentication token
-*   `GET /api/tasks/`: List all of your tasks
-*   `POST /api/tasks/`: Create a new task
-*   `GET /api/tasks/<id>/`: Retrieve a specific task
-*   `PUT /api/tasks/<id>/`: Update a specific task
-*   `DELETE /api/tasks/<id>/`: Delete a specific task
+*   `GET /api/tasks/`: List all of your tasks.
+    *   Filter by completion status: `?completed=true` or `?completed=false`
+    *   Filter by priority: `?priority=H`, `?priority=M`, or `?priority=L`
+*   `POST /api/tasks/`: Create a new task.
+*   `GET /api/tasks/<id>/`: Retrieve a specific task.
+*   `PUT /api/tasks/<id>/`: Update a specific task.
+*   `DELETE /api/tasks/<id>/`: Delete a specific task.
 
 ## Technology Stack
 
@@ -42,13 +47,13 @@ TaskFlow is a full-stack task management application built with Django and Djang
 1.  Clone the repository:
 
     ```bash
-    git clone https://github.com/Niyaz-H/taskflow.git
+    git clone https://github.com/Niyaz-H/taskflow_v2.git
     ```
 
 2.  Navigate to the project directory:
 
     ```bash
-    cd taskflow
+    cd taskflow_v2
     ```
 
 3.  Build and run the Docker containers:
@@ -103,7 +108,7 @@ curl -X POST http://localhost:8000/api/api-token-auth/ \
 curl -X POST http://localhost:8000/api/tasks/ \
   -H "Authorization: Token YOUR_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"title": "My first task", "description": "This is a description of my first task."}'
+  -d '{"title": "My first task", "description": "This is a description of my first task.", "priority": "H", "due_date": "2025-12-31T23:59:59Z"}'
 ```
 
 **4. List all tasks:**
@@ -122,6 +127,7 @@ curl -X GET http://localhost:8000/api/tasks/ \
 - User authentication and authorization
 - Token-based API authentication
 - CORS configuration for API access
+- API filtering and pagination
 
 ### Database Management
 - PostgreSQL integration
@@ -144,7 +150,7 @@ curl -X GET http://localhost:8000/api/tasks/ \
 ## Project Structure
 
 ```
-taskflow/
+taskflow_v2/
 ├── Dockerfile                 # Docker configuration
 ├── docker-compose.yml        # Multi-service Docker setup
 ├── manage.py                 # Django management script
