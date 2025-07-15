@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow</title>
+    <style>
+        body { font-family: sans-serif; }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        .task { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #ccc; }
+        .task.completed { text-decoration: line-through; color: #999; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TaskFlow</h1>
+        <div id="auth">
+            <h2>Register</h2>
+            <input type="text" id="register-username" placeholder="Username">
+            <input type="password" id="register-password" placeholder="Password">
+            <button id="register-btn">Register</button>
+
+            <h2>Login</h2>
+            <input type="text" id="login-username" placeholder="Username">
+            <input type="password" id="login-password" placeholder="Password">
+            <button id="login-btn">Login</button>
+        </div>
+        <div id="tasks" style="display: none;">
+            <h2>My Tasks</h2>
+            <div>
+                <label for="filter-completed">Status:</label>
+                <select id="filter-completed">
+                    <option value="">All</option>
+                    <option value="true">Completed</option>
+                    <option value="false">Not Completed</option>
+                </select>
+                <label for="filter-priority">Priority:</label>
+                <select id="filter-priority">
+                    <option value="">All</option>
+                    <option value="H">High</option>
+                    <option value="M">Medium</option>
+                    <option value="L">Low</option>
+                </select>
+            </div>
+            <div id="task-list"></div>
+            <div id="pagination"></div>
+            <input type="text" id="new-task-title" placeholder="Task title">
+            <input type="text" id="new-task-description" placeholder="Task description">
+            <select id="new-task-priority">
+                <option value="L">Low</option>
+                <option value="M" selected>Medium</option>
+                <option value="H">High</option>
+            </select>
+            <input type="datetime-local" id="new-task-due-date">
+            <button id="add-task-btn">Add Task</button>
+            <button id="logout-btn">Logout</button>
+        </div>
+    </div>
+    <script>
+        const API_URL = 'http://localhost:8000/api';
+        let token = localStorage.getItem('token');
+
+        const authDiv = document.getElementById('auth');
+        const tasksDiv = document.getElementById('tasks');
+        const taskList = document.getElementById('task-list');
+        const paginationDiv = document.getElementById('pagination');
+
+        const registerBtn = document.getElementById('register-btn');
+        const loginBtn = document.getElementById('login-btn');
+        const addTaskBtn = document.getElementById('add-task-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        const registerUsernameInput = document.getElementById('register-username');
+        const registerPasswordInput = document.getElementById('register-password');
+        const loginUsernameInput = document.getElementById('login-username');
+        const loginPasswordInput = document.getElementById('login-password');
+        const newTaskTitleInput = document.getElementById('new-task-title');
+        const newTaskDescriptionInput = document.getElementById('new-task-description');
+        const newTaskPriorityInput = document.getElementById('new-task-priority');
+        const newTaskDueDateInput = document.getElementById('new-task-due-date');
+
+        const filterCompletedInput = document.getElementById('filter-completed');
+        const filterPriorityInput = document.getElementById('filter-priority');
+
+        const showTasks = () => {
+            authDiv.style.display = 'none';
+            tasksDiv.style.display = 'block';
+            loadTasks();
+        };
+
+        const showAuth = () => {
+            authDiv.style.display = 'block';
+            tasksDiv.style.display = 'none';
+        };
+
+        const loadTasks = async (url = `${API_URL}/tasks/`) => {
+            const params = new URLSearchParams();
+            if (filterCompletedInput.value) {
+                params.append('completed', filterCompletedInput.value);
+            }
+            if (filterPriorityInput.value) {
+                params.append('priority', filterPriorityInput.value);
+            }
+            const response = await fetch(`${url}?${params.toString()}`, {
+                headers: {
+                    'Authorization': `Token ${token}`
+                }
+            });
+            const data = await response.json();
+            taskList.innerHTML = '';
+            data.results.forEach(task => {
+                const taskEl = document.createElement('div');
+                taskEl.className = `task ${task.completed ? 'completed' : ''}`;
+                taskEl.innerHTML = `
+                    <div>
+                        <strong>${task.title}</strong>
+                        <p>${task.description || ''}</p>
+                        <small>Priority: ${task.priority} | Due: ${task.due_date ? new Date(task.due_date).toLocaleString() : 'N/A'}</small>
+                    </div>
+                    <div>
+                        <button onclick="toggleTask(${task.id}, ${task.completed})">${task.completed ? 'Undo' : 'Complete'}</button>
+                        <button onclick="deleteTask(${task.id})">Delete</button>
+                    </div>
+                `;
+                taskList.appendChild(taskEl);
+            });
+            renderPagination(data);
+        };
+
+        const renderPagination = (data) => {
+            paginationDiv.innerHTML = '';
+            if (data.previous) {
+                const prevBtn = document.createElement('button');
+                prevBtn.innerText = 'Previous';
+                prevBtn.onclick = () => loadTasks(data.previous);
+                paginationDiv.appendChild(prevBtn);
+            }
+            if (data.next) {
+                const nextBtn = document.createElement('button');
+                nextBtn.innerText = 'Next';
+                nextBtn.onclick = () => loadTasks(data.next);
+                paginationDiv.appendChild(nextBtn);
+            }
+        };
+
+        const toggleTask = async (id, completed) => {
+            await fetch(`${API_URL}/tasks/${id}/`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Token ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ completed: !completed })
+            });
+            loadTasks();
+        };
+
+        const deleteTask = async (id) => {
+            await fetch(`${API_URL}/tasks/${id}/`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Token ${token}`
+                }
+            });
+            loadTasks();
+        };
+
+        registerBtn.onclick = async () => {
+            await fetch(`${API_URL}/register/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    username: registerUsernameInput.value,
+                    password: registerPasswordInput.value
+                })
+            });
+            alert('User registered successfully!');
+        };
+
+        loginBtn.onclick = async () => {
+            const response = await fetch(`${API_URL}/api-token-auth/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    username: loginUsernameInput.value,
+                    password: loginPasswordInput.value
+                })
+            });
+            const data = await response.json();
+            token = data.token;
+            localStorage.setItem('token', token);
+            showTasks();
+        };
+
+        addTaskBtn.onclick = async () => {
+            await fetch(`${API_URL}/tasks/`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Token ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    title: newTaskTitleInput.value,
+                    description: newTaskDescriptionInput.value,
+                    priority: newTaskPriorityInput.value,
+                    due_date: newTaskDueDateInput.value ? new Date(newTaskDueDateInput.value).toISOString() : null
+                })
+            });
+            newTaskTitleInput.value = '';
+            newTaskDescriptionInput.value = '';
+            loadTasks();
+        };
+
+        logoutBtn.onclick = () => {
+            token = null;
+            localStorage.removeItem('token');
+            showAuth();
+        };
+
+        filterCompletedInput.onchange = () => loadTasks();
+        filterPriorityInput.onchange = () => loadTasks();
+
+        if (token) {
+            showTasks();
+        }
+    </script>
+</body>
+</html>
